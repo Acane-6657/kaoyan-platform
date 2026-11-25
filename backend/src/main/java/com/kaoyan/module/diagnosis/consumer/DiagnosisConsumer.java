@@ -18,10 +18,11 @@ public class DiagnosisConsumer {
 
     @KafkaListener(topics = KafkaTopicConfig.DIAGNOSIS_TOPIC, groupId = "kaoyan-platform")
     public void onMessage(DiagnosisMessage message) {
-        log.info("收到诊断消息 traceId={}, questionId={}, userId={}",
-                message.getTraceId(), message.getQuestionId(), message.getUserId());
+        log.info("收到诊断消息 taskId={}, traceId={}, questionId={}, userId={}, promptVersion={}",
+                message.getTaskId(), message.getTraceId(), message.getQuestionId(),
+                message.getUserId(), message.getPromptVersion());
 
         // TODO 阶段四：执行诊断流水线 + SSE 推送 + 结果入库
-        // 幂等提示：消费前先用 questionId 校验 diagnose_status，避免重复诊断
+        // 幂等提示：消费前先按 taskId 校验任务状态，已成功或已取消时直接跳过
     }
 }

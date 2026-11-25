@@ -23,6 +23,10 @@ public enum ResultCode {
     QUESTION_NOT_EXIST(2001, "错题不存在"),
     DIAGNOSIS_FAILED(2002, "AI 诊断失败，请重试"),
     DIAGNOSIS_RUNNING(2003, "诊断正在进行中"),
+    DIAGNOSIS_TASK_NOT_EXIST(2004, "诊断任务不存在"),
+    DIAGNOSIS_TASK_STATE_INVALID(2005, "诊断任务状态不允许当前操作"),
+
+    COURSE_NOT_EXIST(2101, "课程不存在"),
 
     LLM_CONFIG_MISSING(3001, "大模型未配置 API Key"),
     LLM_TIMEOUT(3002, "大模型响应超时"),

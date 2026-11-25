@@ -14,6 +14,9 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class DiagnosisMessage implements Serializable {
 
+    /** 诊断任务 ID */
+    private Long taskId;
+
     /** 错题 ID */
     private Long questionId;
 
@@ -23,10 +26,20 @@ public class DiagnosisMessage implements Serializable {
     /** 链路追踪 ID，贯穿日志 */
     private String traceId;
 
+    /** 提示词版本 */
+    private String promptVersion;
+
     /** 投递时间戳 */
     private Long timestamp;
 
-    public static DiagnosisMessage of(Long questionId, Long userId, String traceId) {
-        return new DiagnosisMessage(questionId, userId, traceId, System.currentTimeMillis());
+    public static DiagnosisMessage of(Long taskId, Long questionId, Long userId, String traceId) {
+        return new DiagnosisMessage(
+                taskId,
+                questionId,
+                userId,
+                traceId,
+                "diagnosis-v1",
+                System.currentTimeMillis()
+        );
     }
 }

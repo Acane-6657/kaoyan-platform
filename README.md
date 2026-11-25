@@ -6,7 +6,7 @@
 
 ```
 kaoyan-platform/
-├── backend/                 SpringBoot 后端（阶段二已完成骨架）
+├── backend/                 Spring Boot 后端
 │   ├── pom.xml
 │   └── src/main/
 │       ├── java/com/kaoyan/
@@ -19,12 +19,13 @@ kaoyan-platform/
 │       └── resources/
 │           ├── application.yml            主配置
 │           └── application-dev.yml        开发环境（数据源 / Redis / Kafka）
-└── frontend/                Vue 前端（阶段二后续接入）
+├── frontend/                Vue 前端（待创建）
+└── sql/                     数据库脚本
+    ├── schema.sql           29 张表的完整建表脚本
+    ├── init-data.sql        角色、菜单和演示账号
+    ├── seed-408.sql         4 门课程、20 章节、100 知识点
+    └── migration-20261124-add-diagnosis-task.sql
 ```
-
-配套 SQL 在仓库上级目录 `../sql/`：
-- `schema.sql` —— 建库建表（28 张表）
-- `init-data.sql` —— 角色、菜单初始化
 
 ## 技术栈
 
@@ -54,10 +55,23 @@ C:\JavaDemo\redis\Redis-8.0.1-Windows-x64-cygwin\start.bat
 
 ### 2. 初始化数据库
 
+新数据库按顺序执行：
+
 ```bash
 mysql -uroot -p < ../sql/schema.sql
 mysql -uroot -p < ../sql/init-data.sql
+mysql -uroot -p < ../sql/seed-408.sql
 ```
+
+已有 28 表数据库只执行增量迁移，再导入演示课程：
+
+```bash
+mysql -uroot -p < ../sql/migration-20261124-add-diagnosis-task.sql
+mysql -uroot -p < ../sql/init-data.sql
+mysql -uroot -p < ../sql/seed-408.sql
+```
+
+演示账号：`admin / 123456`、`student01 / 123456`。
 
 ### 3. 配置环境变量
 
@@ -103,13 +117,40 @@ mvn spring-boot:run
 - 权限：接口上加 `@RequiresPermission(value = "xxx:yyy", role = "ADMIN")`
 - 当前用户：`UserContext.userId()`（由 JWT 拦截器写入 ThreadLocal）
 - 敏感信息（API Key、密码、JWT 密钥）一律走环境变量，禁止提交到仓库
+- SSE 统一用 `fetch` 携带 `Authorization` 请求头订阅，令牌不进入 URL
+
+## 诊断任务接口
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| `POST /api/diagnosis/tasks` | 创建诊断任务；同一错题已有进行中任务时直接复用 |
+| `GET /api/diagnosis/tasks/{taskId}` | 查询任务状态与结果关联 |
+| `GET /api/diagnosis/tasks?status=FAILED&current=1&size=10` | 分页查询当前用户任务 |
+| `POST /api/diagnosis/tasks/{taskId}/cancel` | 取消未结束任务 |
+| `POST /api/diagnosis/tasks/{taskId}/retry` | 手动重试失败/待重试任务，复用原 taskId |
+| `GET /api/diagnosis/tasks/{taskId}/events` | SSE 订阅，推送 `status`、`done`、`error`、`ping` |
+
+任务创建后先落库，事务提交后再投递 Kafka；投递失败会将任务置为 `FAILED`，前端可从任务列表重试。
+
+## 408 课程体系接口
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| `GET /api/courses/subjects` | 查询考试科目 |
+| `GET /api/courses?subjectId=1` | 查询课程列表，`subjectId` 可省略 |
+| `GET /api/courses/{courseId}/tree` | 一次返回章节树和挂载的知识点 |
+| `GET /api/courses/chapters/{chapterId}/knowledge-points` | 查询单个章节的知识点 |
+
+种子数据包含 4 门课程、20 个章节和 100 个知识点，接口按 `sort` 与主键稳定排序。
 
 ## 开发进度
 
 - [x] 阶段零：环境与准备（JDK 17 / Maven / MySQL / Redis / Kafka(Docker) / IDEA）
 - [x] 阶段一：需求与设计（需求文档、ER、28 张表、接口清单）
 - [x] 阶段二：工程骨架（分层、统一返回/异常、Redis/Kafka 集成、JWT、Swagger）
-- [ ] 阶段三：基础业务（用户、RBAC、课程体系）
+- [x] 数据基线：建表、初始化、408 种子数据和 diagnosis_task 增量迁移
+- [x] 诊断任务：任务实体、状态机、REST API、SSE 进度推送和应用层测试
+- [ ] 阶段三：基础业务（课程树查询已完成；RBAC 管理、错题 CRUD 待开发）
 - [ ] 阶段四：错题管理与 AI 诊断（核心）
 - [ ] 阶段五：优化点与辅助功能
 - [ ] 阶段六：系统支撑与联调

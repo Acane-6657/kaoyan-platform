@@ -49,8 +49,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         if (StringUtils.hasText(header)) {
             return header.startsWith(prefix) ? header.substring(prefix.length()).trim() : header.trim();
         }
-        // SSE 场景 EventSource 无法自定义请求头，允许通过查询参数传递
-        String param = request.getParameter("token");
-        return StringUtils.hasText(param) ? param.trim() : "";
+        // 统一从请求头读取令牌；SSE 由前端使用 fetch 携带 Authorization，避免令牌进入 URL 和日志
+        return "";
     }
 }
